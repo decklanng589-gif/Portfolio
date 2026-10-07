@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XYZ Pay SOC — IR-2024-0847</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d0d0d;color:#e0e0e0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#1a1a1a}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+/* TOPBAR */
+#topbar{background:#111;border-bottom:1px solid #222;height:48px;display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0;z-index:10}
+#topbar-logo{display:flex;align-items:center;gap:8px}
+#topbar-logo svg{width:28px;height:28px}
+#topbar-title{font-size:14px;font-weight:600;color:#fff}
+#topbar-subtitle{font-size:11px;color:#666}
+#topbar-center{flex:1;display:flex;justify-content:center;align-items:center;gap:12px}
+#pause-btn{background:#222;border:1px solid #333;color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500}
+#pause-btn:hover{background:#2a2a2a}
+#timer{font-size:22px;font-weight:700;font-family:monospace;color:#ff4444;letter-spacing:2px;min-width:70px;text-align:center}
+#timer.warning{color:#ff6600}
+#timer.ok{color:#ff4444}
+#topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+#token-label{font-size:12px;color:#666}
+#token-dots{display:flex;gap:3px;align-items:center}
+.tdot{width:8px;height:8px;border-radius:50%;background:#333}
+.tdot.used{background:#1a6bb5}
+#token-count{font-size:13px;font-weight:600;color:#4a9eff;min-width:16px;text-align:right}
+#reset-btn{background:transparent;border:1px solid #555;color:#aaa;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+#reset-btn:hover{border-color:#888;color:#fff}
+/* LAYOUT */
+#main{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+#sidebar{width:60px;background:#111;border-right:1px solid #1e1e1e;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0}
+.nav-btn{width:48px;height:48px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:6px;color:#555;position:relative;transition:background 0.15s,color 0.15s}
+.nav-btn:hover{background:#1a1a1a;color:#aaa}
+.nav-btn.active{background:#1a2a3a;color:#4a9eff}
+.nav-btn svg{width:20px;height:20px}
+.nav-btn span{font-size:9px;font-weight:500}
+.nav-badge{position:absolute;top:6px;right:6px;background:#e54;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700}
+/* CONTENT */
+#content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel.active{display:flex}
+/* PANEL HEADER */
+.panel-header{padding:14px 20px 10px;border-bottom:1px solid #1e1e1e;flex-shrink:0}
+.panel-header h2{font-size:18px;font-weight:600;color:#fff}
+.panel-header p{font-size:12px;color:#555;margin-top:2px}
+/* SPLIT PANE */
+.split{display:flex;flex:1;overflow:hidden}
+.split-left{width:320px;flex-shrink:0;border-right:1px solid #1a1a1a;overflow-y:auto;background:#0f0f0f}
+.split-right{flex:1;overflow-y:auto;padding:20px;background:#111}
+/* ALERT ITEMS */
+.sev-filters{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #1a1a1a;flex-shrink:0}
+.sev-filter{padding:4px 12px;border-radius:4px;border:1px solid #2a2a2a;background:transparent;color:#888;font-size:12px;cursor:pointer;font-weight:500}
+.sev-filter.active,.sev-filter:hover{border-color:#4a9eff;color:#4a9eff}
+.alert-summary{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid #111;font-size:11px;color:#555}
+.alert-summary span{display:flex;align-items:center;gap:4px}
+.alert-item{padding:12px 14px;border-bottom:1px solid #1a1a1a;cursor:pointer;transition:background 0.1s}
+.alert-item:hover{background:#161616}
+.alert-item.active{background:#0f1e2e}
+.alert-item.closed{opacity:0.45}
+.alert-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.alert-title{font-size:13px;font-weight:500;color:#ddd}
+.alert-meta{font-size:11px;color:#555}
+/* BADGES */
+.badge{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:0.04em}
+.badge-critical{background:#3d1515;color:#ff6b6b}
+.badge-high{background:#3d2a0a;color:#ffaa44}
+.badge-medium{background:#1a2a0a;color:#88cc44}
+.badge-low{background:#0a1a2a;color:#4488cc}
+.badge-info{background:#1a1a1a;color:#666}
+.badge-closed{background:#1a1a1a;color:#444}
+/* DETAIL PANEL */
+.detail-title{font-size:18px;font-weight:600;color:#fff;margin-bottom:8px}
+.detail-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:#666;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #1e1e1e}
+.detail-meta strong{color:#aaa}
+.detail-body{font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;background:#0d0d0d;padding:16px;border-radius:6px;border:1px solid #1e1e1e;white-space:pre-wrap;margin-bottom:16px}
+.actions-label{font-size:11px;font-weight:600;color:#555;letter-spacing:0.08em;margin-bottom:8px}
+.action-card{background:#0f0f0f;border:1px solid #222;border-radius:6px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s}
+.action-card:hover:not(.done){border-color:#4a9eff}
+.action-card.done{border-color:#1a3a1a;cursor:default}
+.action-card-row{display:flex;justify-content:space-between;align-items:flex-start}
+.action-card-title{font-size:13px;font-weight:500;color:#ccc}
+.action-card.done .action-card-title{color:#555}
+.action-cost{font-size:11px;color:#4a9eff;margin-top:2px}
+.action-card.done .action-cost{color:#1a5a1a}
+.action-desc{font-size:11px;color:#555;margin-top:4px}
+.completed-tag{font-size:11px;color:#4caf50;font-weight:500}
+/* LOGS */
+.log-filters{padding:10px 12px;border-bottom:1px solid #1a1a1a;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.log-filter-row{display:flex;gap:6px;align-items:center;font-size:11px;color:#555}
+.log-filter-row label{white-space:nowrap}
+.log-filter-row select,.log-filter-row input{background:#0f0f0f;border:1px solid #222;color:#aaa;padding:3px 8px;border-radius:4px;font-size:11px;font-family:inherit}
+.log-search{padding:8px 12px;border-bottom:1px solid #1a1a1a;flex-shrink:0}
+.log-search input{width:100%;background:#0f0f0f;border:1px solid #222;color:#ccc;padding:6px 10px;border-radius:4px;font-size:12px;font-family:inherit}
+.log-search input:focus{outline:none;border-color:#333}
+.log-item{padding:10px 14px;border-bottom:1px solid #131313;cursor:pointer;transition:background 0.1s;display:flex;align-items:flex-start;gap:10px}
+.log-item:hover{background:#161616}
+.log-item.active{background:#0f1e2e}
+.log-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.log-dot.info{background:#333}
+.log-dot.warning{background:#ff9900}
+.log-dot.error{background:#ff4444}
+.log-dot.success{background:#44cc44}
+.log-ts{font-size:11px;color:#555;margin-bottom:2px;font-family:monospace}
+.log-msg{font-size:12px;color:#ccc;font-weight:500}
+.log-sub{font-size:11px;color:#555;display:flex;gap:8px;margin-top:2px}
+.log-detail-box{font-family:monospace;font-size:12px;background:#0d0d0d;padding:16px;border-radius:6px;border:1px solid #1e1e1e;white-space:pre-wrap;color:#aaa;line-height:1.7}
+/* INTEL */
+.intel-search-wrap{padding:16px 20px;border-bottom:1px solid #1a1a1a;flex-shrink:0}
+.intel-search-row{display:flex;gap:8px}
+.intel-search-row input{flex:1;background:#0f0f0f;border:1px solid #333;color:#ccc;padding:8px 12px;border-radius:4px;font-size:13px;font-family:inherit}
+.intel-search-row input:focus{outline:none;border-color:#4a9eff}
+.intel-search-btn{background:#1a3a6a;border:none;color:#4a9eff;padding:8px 18px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500}
+.intel-search-btn:hover{background:#1f4a80}
+.intel-result{padding:20px;flex:1;overflow-y:auto}
+.intel-empty{color:#444;font-size:13px;text-align:center;padding-top:60px}
+.intel-card{background:#0f0f0f;border:1px solid #222;border-radius:8px;overflow:hidden}
+.intel-card-header{padding:14px 16px;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center}
+.intel-ip{font-size:20px;font-weight:700;color:#fff;font-family:monospace}
+.intel-score{text-align:right}
+.intel-score-label{font-size:10px;color:#555;display:block}
+.intel-score-val{font-size:24px;font-weight:700;color:#ff4444}
+.intel-verdict{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-top:4px}
+.intel-verdict.malicious{background:#3d1515;color:#ff6b6b}
+.intel-verdict.suspicious{background:#3d2a0a;color:#ffaa44}
+.intel-verdict.clean{background:#0a1f0a;color:#44cc44}
+.intel-body{padding:16px}
+.intel-section{margin-bottom:16px}
+.intel-section-label{font-size:10px;font-weight:600;color:#555;letter-spacing:0.08em;margin-bottom:6px}
+.intel-section-text{font-size:13px;color:#ccc;line-height:1.5}
+.intel-recommendation{border-left:3px solid #4a9eff;padding-left:12px;font-size:13px;color:#ccc}
+.intel-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1e1e1e;border:1px solid #1e1e1e;border-radius:6px;overflow:hidden;margin-top:8px}
+.intel-cell{background:#0f0f0f;padding:10px 14px}
+.intel-cell-label{font-size:10px;color:#555;margin-bottom:4px;letter-spacing:0.06em}
+.intel-cell-val{font-size:13px;color:#ddd;font-family:monospace}
+.intel-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.intel-tag{background:#1a1a1a;border:1px solid #2a2a2a;padding:3px 10px;border-radius:3px;font-size:11px;color:#666;font-family:monospace}
+/* MESSAGES */
+.msg-layout{display:flex;flex:1;overflow:hidden}
+.msg-contacts{width:200px;flex-shrink:0;border-right:1px solid #1a1a1a;background:#0f0f0f;overflow-y:auto}
+.msg-contact{padding:12px 14px;cursor:pointer;border-bottom:1px solid #151515;display:flex;align-items:center;gap:10px;transition:background 0.1s}
+.msg-contact:hover{background:#161616}
+.msg-contact.active{background:#0f1e2e}
+.contact-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0}
+.contact-avatar img{width:100%;height:100%;object-fit:cover}
+.contact-avatar-placeholder{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.contact-name{font-size:13px;font-weight:500;color:#ddd}
+.contact-role{font-size:11px;color:#555}
+.contact-status{font-size:10px;margin-top:2px;font-weight:500}
+.status-online{color:#44cc44}
+.status-dnd{color:#ff9900}
+/* CHAT */
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-header{padding:10px 16px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg-bubble-wrap{display:flex;gap:8px;align-items:flex-end}
+.msg-bubble-wrap.player{flex-direction:row-reverse}
+.bubble-avatar{width:28px;height:28px;border-radius:50%;background:#1a2a3a;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#4a9eff;flex-shrink:0}
+.msg-bubble{max-width:68%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5}
+.msg-bubble.npc{background:#1a1a1a;color:#ddd;border-radius:10px 10px 10px 2px}
+.msg-bubble.player{background:#1a3a6a;color:#ddd;border-radius:10px 10px 2px 10px}
+.msg-time{font-size:10px;color:#444;margin-top:2px}
+.chat-input-area{padding:10px 14px;border-top:1px solid #1a1a1a;display:flex;gap:8px;flex-shrink:0}
+.chat-input-area textarea{flex:1;background:#0f0f0f;border:1px solid #222;color:#ccc;padding:8px 10px;border-radius:6px;font-size:12px;font-family:inherit;resize:none;height:54px;line-height:1.4}
+.chat-input-area textarea:focus{outline:none;border-color:#333}
+.send-btn{background:#1a3a6a;border:none;color:#4a9eff;padding:0 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}
+.send-btn:hover{background:#1f4a80}
+.send-btn:disabled{opacity:0.4;cursor:default}
+/* Priya escalation */
+.escalation-form{padding:16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.esc-label{font-size:11px;font-weight:600;color:#555;letter-spacing:0.07em;margin-bottom:4px}
+.esc-textarea{background:#0f0f0f;border:1px solid #222;color:#ccc;padding:10px 12px;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;min-height:120px;width:100%}
+.esc-textarea:focus{outline:none;border-color:#333}
+.esc-checklist{display:flex;flex-direction:column;gap:6px}
+.esc-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#888;cursor:pointer}
+.esc-check input{margin-top:2px;accent-color:#4a9eff}
+.esc-submit{background:#1a3a6a;border:none;color:#4a9eff;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;align-self:flex-start}
+.esc-submit:hover{background:#1f4a80}
+.esc-sent{background:#0a1f0a;border:1px solid #1a3a1a;padding:12px 16px;border-radius:6px;color:#44cc44;font-size:13px}
+/* EVIDENCE */
+.ev-item{padding:12px 14px;border-bottom:1px solid #1a1a1a;cursor:pointer;transition:background 0.1s;display:flex;align-items:flex-start;gap:10px}
+.ev-item:hover{background:#161616}
+.ev-item.active{background:#0f1e2e}
+.ev-icon{width:32px;height:32px;border-radius:6px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ev-item-title{font-size:13px;font-weight:500;color:#ddd}
+.ev-item-cat{font-size:11px;color:#555;margin-top:2px}
+.ev-count{font-size:11px;color:#555;padding:8px 14px;border-bottom:1px solid #1a1a1a;text-align:right}
+/* PEOPLE */
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:16px;overflow-y:auto}
+.person-card{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:8px;padding:14px;cursor:pointer;transition:border-color 0.15s}
+.person-card:hover{border-color:#2a2a2a}
+.person-card.selected{border-color:#1a4a8a}
+.person-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.person-initials{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.person-name{font-size:13px;font-weight:600;color:#ddd}
+.person-role{font-size:11px;color:#555;margin-top:1px}
+.person-dept{font-size:11px;color:#666;padding:3px 8px;border-radius:3px;background:#1a1a1a;display:inline-block}
+.person-status{font-size:11px;margin-top:6px;font-weight:500}
+.status-compromised{color:#ff4444}
+.status-targeted{color:#ff9900}
+.status-safe{color:#44aa44}
+/* ACTIONS / REPORT */
+.report-wrap{padding:20px;overflow-y:auto;flex:1}
+.report-header-section{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:8px;padding:16px;margin-bottom:16px}
+.report-section{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:8px;padding:16px;margin-bottom:12px}
+.report-section h3{font-size:13px;font-weight:600;color:#888;letter-spacing:0.06em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1e1e1e}
+.report-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.report-key{color:#666}
+.report-val{color:#ccc;font-family:monospace}
+.report-log-item{font-size:12px;font-family:monospace;color:#888;padding:4px 0;border-bottom:1px solid #131313;display:flex;gap:12px}
+.report-log-ts{color:#555;flex-shrink:0}
+.report-log-msg{color:#aaa}
+.export-btn{background:#1a3a6a;border:none;color:#4a9eff;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}
+.export-btn:hover{background:#1f4a80}
+/* NOTES */
+.notes-wrap{padding:16px;flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.notes-textarea{flex:1;background:#0d0d0d;border:1px solid #1e1e1e;color:#bbb;padding:14px;border-radius:6px;font-size:13px;font-family:'Courier New',monospace;resize:none;line-height:1.7}
+.notes-textarea:focus{outline:none;border-color:#2a2a2a}
+/* TOAST */
+#toast-area{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{background:#0f2a1a;border:1px solid #1a4a2a;color:#66cc88;padding:10px 14px;border-radius:6px;font-size:12px;max-width:300px;animation:fadeIn 0.2s ease}
+.toast.warning{background:#2a1a0a;border-color:#4a2a0a;color:#ffaa44}
+.toast.info{background:#0a1a2a;border-color:#1a2a4a;color:#4a9eff}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* MISC */
+.placeholder-text{color:#444;font-size:13px;text-align:center;padding-top:60px}
+.section-divider{border:none;border-top:1px solid #1a1a1a;margin:16px 0}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="topbar-logo">
+    <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" fill="#1a3a6a" stroke="#4a9eff" stroke-width="1.5"/><path d="M9 14 L12 17 L19 10" stroke="#4a9eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><div id="topbar-title">XYZ Pay SOC</div><div id="topbar-subtitle">Operation Glasshouse: IR-2024-0847</div></div>
+  </div>
+  <div id="topbar-center">
+    <button id="pause-btn" onclick="togglePause()">Pause</button>
+    <div id="timer" class="ok">60:00</div>
+  </div>
+  <div id="topbar-right">
+    <span id="token-label">Tokens:</span>
+    <div id="token-dots"></div>
+    <span id="token-count">10</span>
+    <button id="reset-btn" onclick="confirmReset()">Reset</button>
+    <button id="pause-btn2" style="background:transparent;border:1px solid #333;color:#666;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px" title="Info" onclick="showInfo()">ℹ</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <button class="nav-btn active" id="nav-siem" onclick="switchPanel('siem')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>SIEM</span>
+      <div class="nav-badge" id="badge-siem" style="display:none">0</div>
+    </button>
+    <button class="nav-btn" id="nav-tickets" onclick="switchPanel('tickets')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span>Tickets</span>
+      <div class="nav-badge" id="badge-tickets" style="display:none">0</div>
+    </button>
+    <button class="nav-btn" id="nav-logs" onclick="switchPanel('logs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
+      <span>Logs</span>
+    </button>
+    <button class="nav-btn" id="nav-intel" onclick="switchPanel('intel')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span>Intel</span>
+    </button>
+    <button class="nav-btn" id="nav-messages" onclick="switchPanel('messages')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span>Messages</span>
+      <div class="nav-badge" id="badge-messages" style="display:none">0</div>
+    </button>
+    <button class="nav-btn" id="nav-evidence" onclick="switchPanel('evidence')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      <span>Evidence</span>
+      <div class="nav-badge" id="badge-evidence" style="display:none">0</div>
+    </button>
+    <button class="nav-btn" id="nav-people" onclick="switchPanel('people')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>People</span>
+    </button>
+    <button class="nav-btn" id="nav-actions" onclick="switchPanel('actions')" style="margin-top:auto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <span>Actions</span>
+    </button>
+  </div>
+
+  <!-- CONTENT PANELS -->
+  <div id="content">
+
+    <!-- SIEM -->
+    <div class="panel active" id="panel-siem">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><h2>SIEM Dashboard</h2><p>Security Information and Event Management</p></div>
+        <div id="siem-summary-counts" style="display:flex;gap:12px;font-size:12px;align-items:center;padding-top:4px"></div>
+      </div>
+      <div class="sev-filters" id="sev-filters">
+        <button class="sev-filter active" onclick="filterSev('all',this)">All</button>
+        <button class="sev-filter" onclick="filterSev('critical',this)">Critical</button>
+        <button class="sev-filter" onclick="filterSev('high',this)">High</button>
+        <button class="sev-filter" onclick="filterSev('medium',this)">Medium</button>
+        <button class="sev-filter" onclick="filterSev('low',this)">Low</button>
+        <button class="sev-filter" onclick="filterSev('info',this)">Info</button>
+      </div>
+      <div class="split" style="flex:1;overflow:hidden">
+        <div class="split-left" id="alert-list"></div>
+        <div class="split-right" id="alert-detail"><p class="placeholder-text">Select an alert to view details</p></div>
+      </div>
+    </div>
+
+    <!-- TICKETS -->
+    <div class="panel" id="panel-tickets">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><h2>Service Tickets</h2><p>Security-related tickets assigned to SOC</p></div>
+        <div id="ticket-open-count" style="font-size:12px;color:#555;padding-top:6px"></div>
+      </div>
+      <div class="split" style="flex:1;overflow:hidden">
+        <div class="split-left" id="ticket-list"></div>
+        <div class="split-right" id="ticket-detail"><p class="placeholder-text">Select a ticket to view</p></div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="panel" id="panel-logs">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><h2>Log Viewer</h2><p>Search and analyse system logs</p></div>
+        <div id="log-count-label" style="font-size:12px;color:#555;padding-top:6px"></div>
+      </div>
+      <div class="log-search"><input type="text" id="log-search-input" placeholder="Search logs (message, user, IP, details...)" oninput="filterLogs()"></div>
+      <div class="log-filters">
+        <div class="log-filter-row"><label>SYSTEM:</label><select id="log-sys" onchange="filterLogs()"><option>All Systems</option><option>internal-sso</option><option>customer-portal</option><option>vpn-gateway</option><option>db-srv-01</option><option>active-directory</option></select></div>
+        <div class="log-filter-row"><label>TYPE:</label><select id="log-type" onchange="filterLogs()"><option>All Types</option><option>auth</option><option>access</option><option>system</option><option>network</option></select></div>
+        <div class="log-filter-row"><label>SEVERITY:</label><select id="log-sev" onchange="filterLogs()"><option>All Severities</option><option>error</option><option>warning</option><option>info</option><option>success</option></select></div>
+        <div class="log-filter-row"><label>USER:</label><input type="text" id="log-user" placeholder="Filter by user..." oninput="filterLogs()" style="width:160px"></div>
+      </div>
+      <div class="split" style="flex:1;overflow:hidden">
+        <div class="split-left" id="log-list"></div>
+        <div class="split-right" id="log-detail"><p class="placeholder-text">Select a log entry to view details</p></div>
+      </div>
+    </div>
+
+    <!-- INTEL -->
+    <div class="panel" id="panel-intel">
+      <div class="panel-header"><h2>Threat Intelligence Portal</h2><p>Search IPs, domains, hashes, and email addresses</p></div>
+      <div class="intel-search-wrap">
+        <div class="intel-search-row">
+          <input type="text" id="intel-input" placeholder="Enter IP address, domain, or hash..." onkeydown="if(event.key==='Enter')runIntelSearch()">
+          <button class="intel-search-btn" onclick="runIntelSearch()">Search</button>
+        </div>
+        <div id="intel-suggestions" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div class="intel-result" id="intel-result"><p class="intel-empty">Enter an indicator above to search threat intelligence</p></div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="panel" id="panel-messages">
+      <div class="panel-header"><h2>Communications</h2><p>Message XYZ Pay staff</p></div>
+      <div class="msg-layout">
+        <div class="msg-contacts">
+          <div class="msg-contact active" id="contact-priya" onclick="selectContact('priya')">
+            <div class="contact-avatar-placeholder" style="background:#2a1a3a;color:#aa88cc">PS</div>
+            <div><div class="contact-name">Priya Sharma</div><div class="contact-role">SOC Manager</div><div class="contact-status status-online">● online</div></div>
+          </div>
+          <div class="msg-contact" id="contact-james" onclick="selectContact('james')">
+            <div class="contact-avatar-placeholder" style="background:#1a2a3a;color:#4a9eff">JO</div>
+            <div><div class="contact-name">James Okoro</div><div class="contact-role">Senior IR Analyst</div><div class="contact-status status-dnd" id="james-status">● Do Not Disturb</div></div>
+          </div>
+        </div>
+        <div class="chat-area" id="chat-area"></div>
+      </div>
+    </div>
+
+    <!-- EVIDENCE -->
+    <div class="panel" id="panel-evidence">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><h2>Evidence Collected</h2><p>Investigation findings and analysis results</p></div>
+        <div id="ev-count-label" style="font-size:12px;color:#555;padding-top:6px"></div>
+      </div>
+      <div class="split" style="flex:1;overflow:hidden">
+        <div class="split-left" id="ev-list"></div>
+        <div class="split-right" id="ev-detail"><p class="placeholder-text">Select an item to view</p></div>
+      </div>
+    </div>
+
+    <!-- PEOPLE -->
+    <div class="panel" id="panel-people">
+      <div class="panel-header"><h2>People</h2><p>XYZ Pay staff directory</p></div>
+      <div class="people-grid" id="people-grid"></div>
+    </div>
+
+    <!-- ACTIONS / REPORT -->
+    <div class="panel" id="panel-actions">
+      <div class="panel-header"><h2>Session Report</h2><p>Your investigation log for IR-2024-0847</p></div>
+      <div class="report-wrap" id="report-wrap"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="toast-area"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let tokens = 10;
+let timerSecs = 3600;
+let timerPaused = false;
+let timerInterval = null;
+let completedActions = new Set();
+let unlockedEvidence = new Set(['EV-20','EV-21']);
+let actionsLog = [];
+let alertFilter = 'all';
+let selectedAlert = null;
+let selectedTicket = null;
+let selectedLog = null;
+let selectedEvidence = null;
+let activeContact = 'priya';
+let priyaEscalationSent = false;
+let closedAlerts = new Set(['I-2003','L-2002']);
+let closedTickets = new Set();
+let timedAlertsDone = new Set();
+let timedTicketsDone = new Set();
+let jamesTyping = false;
+let jamesMsgHistory = [];
+
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const ALERTS = [
+  {id:'H-0012',severity:'critical',title:'Bulk data access: customer_transactions_db',timestamp:'2024-10-15 07:48',source:'103.42.91.17',target:'customer-portal',user:'liam.fitzgerald@xyzpay.com.au',visibleAt:0,
+   details:`CRITICAL — Bulk data access detected\n\nUser:    liam.fitzgerald@xyzpay.com.au\nSource:  103.42.91.17 (VPN endpoint — Indonesia)\nTarget:  customer_transactions_db\nRecords: 2,847\nTime:    07:48 ACDT\n\nQuery executed:\nSELECT * FROM customer_transactions\nWHERE late_fee_count > 0\nOR hardship_flag = TRUE\n\nAnomaly: This user's normal access pattern\nis Adelaide, AU. This session originates\nfrom an Indonesian VPN endpoint on an\nunrecognised device.`,
+   actions:[{id:'block-liam-ip',label:'Contain: Block IP & disable Liam\'s account',cost:2,desc:'Block 103.42.91.17 at perimeter firewall and disable liam.fitzgerald account pending investigation',log:'Blocked 103.42.91.17, disabled liam.fitzgerald account',ev:'EV-7'}]},
+
+  {id:'M-2471',severity:'medium',title:'Multiple failed logins: customer-portal',timestamp:'2024-10-14 22:14',source:'185.220.101.42',target:'customer-portal',visibleAt:0,
+   details:`Multiple failed authentication attempts\n\nSource: 185.220.101.42 (Tor exit node)\nTarget: customer-portal (external)\nAttempts: 1,247 failed\nSuccesses: 0\nTimeframe: 22:14 – 23:45 ACDT\n\nPattern: Automated, indiscriminate botnet.\nTargeting random usernames from leaked list.\nZero successful logins.`,
+   actions:[{id:'close-stuffing-1',label:'Acknowledge: Background noise, no action',cost:0,desc:'Mark as credential stuffing botnet activity. No XYZ accounts compromised.',log:'M-2471 acknowledged — credential stuffing noise, 0 successful logins',closes:true}]},
+
+  {id:'M-2472',severity:'medium',title:'Multiple failed logins: customer-portal',timestamp:'2024-10-14 23:55',source:'91.240.118.29',target:'customer-portal',visibleAt:0,
+   details:`Multiple failed authentication attempts\n\nSource: 91.240.118.29 (Bulletproof hosting)\nTarget: customer-portal (external)\nAttempts: 892 failed\nSuccesses: 0\nTimeframe: 23:55 – 00:38 ACDT\n\nSecond credential stuffing burst, different IP.\nSame pattern as M-2471.`,
+   actions:[{id:'close-stuffing-2',label:'Acknowledge: Background noise, no action',cost:0,desc:'Mark as credential stuffing botnet activity. No XYZ accounts compromised.',log:'M-2472 acknowledged — credential stuffing noise, 0 successful logins',closes:true}]},
+
+  {id:'M-2520',severity:'medium',title:'New scheduled task: DB-PROD-01',timestamp:'2024-10-15 06:07',source:'103.2.117.8',target:'db-srv-01',user:'svc_backup_admin@xyzpay.com.au',visibleAt:0,
+   details:`New scheduled task registered on production\ndatabase server.\n\nUser:      svc_backup_admin@xyzpay.com.au\nSource IP: 103.2.117.8 (Adelaide — Superloop)\nTarget:    db-srv-01 (DB-PROD-01)\nTask Name: system_maintenance_daily\nSchedule:  Daily at 17:00 ACDT\nCreated:   06:07 ACDT\n\nTask created during backup completion window\n(backups finished at 06:00).\n\nNote: Service account and task name are\nunrecognised. Source IP 103.2.117.8 does NOT\nmatch any known Infrastructure team device.`,
+   actions:[{id:'investigate-task',label:'Investigate: Request Infrastructure review',cost:2,desc:'Request Rachel Torres (Infrastructure) to investigate scheduled task and identify svc_backup_admin ownership',log:'Raised investigation with Infrastructure — svc_backup_admin and system_maintenance_daily task on db-srv-01',ev:'EV-TASK'}]},
+
+  {id:'L-2010',severity:'low',title:'After-hours VPN: Sandra Leigh (CFO)',timestamp:'2024-10-14 21:30',source:'121.44.88.15',target:'vpn-gateway',user:'sandra.leigh@xyzpay.com.au',visibleAt:0,
+   details:`After-hours VPN connection\n\nUser:    sandra.leigh@xyzpay.com.au (CFO)\nSource:  121.44.88.15 (Adelaide — TPG residential)\nDevice:  LAPTOP-SL001 (enrolled, corporate-owned)\nMFA:     Authenticator App\nActivity: Email access, finance dashboard\n\nAlex's note: Sandra checking in from home\nduring active incident. Not unusual.`,
+   actions:[{id:'investigate-sandra',label:'Investigate: Pull full session logs',cost:1,desc:'Request detailed VPN and activity logs for Sandra Leigh\'s session',log:'Requested full VPN session analysis for sandra.leigh',ev:'EV-25'}]},
+
+  {id:'L-2011',severity:'low',title:'After-hours VPN: Marcus Chen (CISO)',timestamp:'2024-10-14 22:08',source:'203.45.67.89',target:'vpn-gateway',user:'marcus.chen@xyzpay.com.au',visibleAt:0,
+   details:`After-hours VPN connection\n\nUser:    marcus.chen@xyzpay.com.au (CISO)\nSource:  203.45.67.89 (Adelaide — Telstra residential)\nDevice:  LAPTOP-MC001 (enrolled, corporate-owned)\nMFA:     Authenticator App\nActivity: Accessed IR-2024-0847 email folder`,
+   actions:[{id:'close-marcus',label:'Acknowledge: Expected activity',cost:0,desc:'CISO checking incident status from home. Known device, enrolled MFA.',log:'L-2011 acknowledged — CISO home VPN, legitimate activity',closes:true}]},
+
+  {id:'M-2530',severity:'medium',title:'Multiple password resets detected',timestamp:'2024-10-15 08:15',source:'identity-mgmt',target:'active-directory',visibleAt:900,
+   details:`Multiple password reset requests via\nSelf-Service Password Portal\n\nCount: 4 resets in 10 minutes\nUsers:\n- david.chen@xyzpay.com.au\n- nadia.khoury@xyzpay.com.au\n- 2 others (routine Monday resets)\n\nNote: David Chen and Nadia Khoury have\nsubmitted tickets to the SOC regarding\npotential account compromise. Their\nresets may be related.`,
+   actions:[{id:'close-resets',label:'Acknowledge: Related to vishing investigation',cost:0,desc:'David and Nadia self-reset after seeing security advisory. Expected in context of IR-2024-0847.',log:'M-2530 acknowledged — password resets by vishing victims, expected',closes:true}]},
+
+  {id:'I-2031',severity:'info',title:'Firewall rule change: fw-edge-01',timestamp:'2024-10-15 08:20',source:'fw-monitor',target:'fw-edge-01',visibleAt:1200,
+   details:`Firewall configuration change detected\n\nDevice:    fw-edge-01\nChange:    Block rule updated — 103.42.91.17\nChanged by: rachel.torres@xyzpay.com.au\nTicket:    CHG-4523\n\nRule extended per IR-2024-0847 containment.\nApproved change.`,actions:[]},
+
+  {id:'L-2032',severity:'low',title:'Service health check failed: print-server-02',timestamp:'2024-10-15 08:35',source:'healthcheck',target:'print-server-02',visibleAt:1800,
+   details:`Service health check failure\n\nServer:  print-server-02\nService: Print Spooler\nStatus:  Not responding\n\nPrimary print-server-01 is operational.\nIT Service Desk notified (INC-8834).\nLow priority — redundant service.`,actions:[]},
+
+  {id:'I-2003',severity:'info',title:'AD maintenance window completed',timestamp:'2024-10-15 02:45',source:'dc-01',target:'active-directory',visibleAt:0,
+   details:`Active Directory maintenance\n\nTasks: GPO update, schema check\nDuration: 45 minutes\nStatus: All tasks successful\nChanges: 0 schema mods, 3 GPO refreshes\n\nScheduled maintenance. No action required.`,actions:[]},
+
+  {id:'L-2002',severity:'low',title:'Antivirus signature update',timestamp:'2024-10-15 06:00',source:'av-mgmt-01',target:'all-endpoints',visibleAt:0,
+   details:`AV definition update deployed\n\nUpdate: CrowdStrike Falcon v2024.10.15.001\nEndpoints updated: 249/251\nFailed: 2 (offline laptops)\n\nRoutine update. No action required.`,actions:[]},
+];
+
+const TICKETS = [
+  {id:'TKT-4480',priority:'medium',category:'Security — Vishing Report',from:'David Chen',email:'david.chen@xyzpay.com.au',dept:'Sales',subject:'Suspicious call on Saturday',submitted:'2024-10-15 07:52',visibleAt:0,
+   content:`Hi Security team,\n\nI saw the email from Marcus yesterday about suspicious IT calls and I think I need to report something.\n\nOn Saturday around 2pm I got a call from someone saying they were from IT Support. They said there was a system migration happening and they needed to verify my identity. They asked me to read out a code that came through on my phone.\n\nI didn't think much of it at the time. The guy sounded professional and knew my name and department. But after reading Marcus's email, I'm pretty sure that was one of the calls he was warning about.\n\nI'm really sorry if I've caused a problem. Please let me know what I need to do.\n\nDavid Chen\nMerchant Partnerships`,
+   actions:[{id:'contain-david',label:'Contain: Block IP & reset David\'s credentials',cost:1,desc:'Block attacker source IP and reset david.chen password and MFA token',log:'Contained david.chen — source IP blocked, password and MFA reset',closes:true,ev:'EV-DAVID'}]},
+
+  {id:'TKT-4481',priority:'medium',category:'Security — Vishing Report',from:'Nadia Khoury',email:'nadia.khoury@xyzpay.com.au',dept:'Marketing',subject:'Suspicious phone call',submitted:'2024-10-15 07:58',visibleAt:0,
+   content:`Hi,\n\nDavid Chen just told me about the call he got on Saturday and the security advisory. I got the same thing: a call on Sunday morning, around 9am. He said he was from IT and asked me to verify a code on my phone.\n\nI gave them the code. It seemed completely normal at the time.\n\nI didn't think anything of it until David mentioned his call just now. Is this bad?\n\nNadia`,
+   actions:[{id:'contain-nadia',label:'Contain: Block IP & reset Nadia\'s credentials',cost:1,desc:'Block attacker source IP and reset nadia.khoury password and MFA token',log:'Contained nadia.khoury — source IP blocked, password and MFA reset',closes:true,ev:'EV-NADIA'}]},
+
+  {id:'TKT-4475',priority:'low',category:'Security — Vishing Report',from:'Linda Park',email:'linda.park@xyzpay.com.au',dept:'HR',subject:'Call from IT',submitted:'2024-10-14 17:08',visibleAt:0,
+   content:`Hi Security,\n\nI just read the security advisory that went out. I got a call like that on Monday around 2:30pm, before the email came out.\n\nA man called saying he was from IT Support and asked me to confirm some account details and read out a code from my phone. I thought it sounded a bit off so I told him I'd call the help desk back myself and he hung up pretty quickly.\n\nI didn't give him any codes or passwords.\n\nLinda Park, HR Coordinator`,
+   actions:[{id:'review-linda',label:'Review: Acknowledge, no compromise',cost:1,desc:'Verify no compromise. Log vishing attempt as campaign intelligence.',log:'Reviewed linda.park — no compromise confirmed, call logged as campaign intel',closes:true}]},
+
+  {id:'TKT-4476',priority:'low',category:'Security — Vishing Report',from:'Mei Zhang',email:'mei.zhang@xyzpay.com.au',dept:'Finance',subject:'Weird call last week',submitted:'2024-10-14 23:42',visibleAt:0,
+   content:`Hi,\n\nLast week I got a call from someone saying they were from IT. They said my account needed to be re-verified because of a system update. They asked me to read a code from my phone.\n\nI was in a meeting at the time so I said I'd call back. They said it was urgent and I really needed to do it now. I told them I was busy and hung up.\n\nI don't think I gave them anything but wanted to flag it just in case.\n\nMei Zhang, Finance`,
+   actions:[{id:'review-mei',label:'Review: Acknowledge, no compromise',cost:1,desc:'Verify no compromise. Note: call dates to Thursday 10 Oct — earliest known vishing attempt.',log:'Reviewed mei.zhang — no compromise confirmed, earliest known vishing attempt (Thu 10 Oct)',closes:true}]},
+
+  {id:'TKT-4482',priority:'medium',category:'MFA Reset — Suspicious Timing',from:'Tom Bradshaw',email:'tom.bradshaw@xyzpay.com.au',dept:'Sales',subject:'MFA setup on new phone',submitted:'2024-10-15 08:03',visibleAt:180,
+   content:`Hi Security,\n\nI just read Marcus's email and thought I should flag something just in case.\n\nI recently switched to a new phone and needed to get my authenticator app set up again. I called the IT help desk on Monday morning and they walked me through re-enrolling my MFA.\n\nIs that the kind of thing you're looking for? It wasn't a call TO me, I called them. But I wanted to mention it given what's going on.\n\nTom Bradshaw, Sales`,
+   actions:[{id:'review-tom',label:'Review: Verify with IT help desk',cost:1,desc:'Confirm with IT help desk that Tom\'s MFA re-enrolment on Monday was a legitimate call to the real help desk number.',log:'Reviewed tom.bradshaw — help desk confirmed legitimate MFA re-enrolment, no compromise',closes:true}]},
+
+  {id:'TKT-4477',priority:'low',category:'Security — Vishing Report',from:'Ben Torres',email:'ben.torres@xyzpay.com.au',dept:'Engineering',subject:'Reporting a suspicious call from Saturday',submitted:'2024-10-15 08:15',visibleAt:900,
+   content:`Hey team,\n\nCouple of people in the office were talking about getting weird IT calls. I got one too on Saturday arvo, maybe around 3:30. Guy said he was from the help desk and needed me to verify my account.\n\nI was at the pub so I just told him I'd sort it out Monday and hung up. He seemed annoyed but didn't push it.\n\nJust flagging it in case it's part of the same thing. Didn't give him anything.\n\nBen`,
+   actions:[{id:'review-ben',label:'Review: Acknowledge, no compromise',cost:1,desc:'Verify no compromise. Log vishing attempt as campaign intelligence.',log:'Reviewed ben.torres — no compromise confirmed, vishing attempt Sat afternoon',closes:true}]},
+];
+
+const LOGS = [
+  {id:'LOG-001',ts:'2024-10-14 22:14:05',system:'internal-sso',type:'auth',severity:'error',dot:'error',msg:'Authentication failed — incorrect password',sub:'liam.fitzgerald@xyzpay.com.au · 103.42.91.17',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-14 22:14:05  internal-sso  AUTH\n────────────────────────────────────────\nEvent:  Authentication failed — incorrect password\nUser:   liam.fitzgerald@xyzpay.com.au\nIP:     103.42.91.17\nDevice: Unknown\nResult: FAILED\n\nFirst of multiple failed attempts from\nthis IP before eventual success.`},
+  {id:'LOG-002',ts:'2024-10-14 22:14:28',system:'internal-sso',type:'auth',severity:'error',dot:'error',msg:'Authentication failed — incorrect password',sub:'liam.fitzgerald@xyzpay.com.au · 103.42.91.17',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-14 22:14:28  internal-sso  AUTH\n────────────────────────────────────────\nEvent:  Authentication failed — incorrect password\nUser:   liam.fitzgerald@xyzpay.com.au\nIP:     103.42.91.17\nDevice: Unknown\nResult: FAILED\n\nSecond attempt. Consistent with\nattacker trialling multiple passwords\nbefore obtaining correct one via vishing.`},
+  {id:'LOG-003',ts:'2024-10-15 07:52:10',system:'internal-sso',type:'auth',severity:'warning',dot:'warning',msg:'Primary authentication successful',sub:'liam.fitzgerald@xyzpay.com.au · 103.42.91.17',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-15 07:52:10  internal-sso  AUTH\n────────────────────────────────────────\nEvent:  Primary authentication SUCCESSFUL\nUser:   liam.fitzgerald@xyzpay.com.au\nIP:     103.42.91.17 (VPN — Indonesia)\nDevice: Unknown (not in asset inventory)\nResult: PASSWORD OK — MFA pending\n\n⚠ ANOMALY: Source IP is Indonesian VPN\nendpoint. Liam's normal pattern is\nAdelaide, AU corporate network.`},
+  {id:'LOG-004',ts:'2024-10-15 07:53:00',system:'internal-sso',type:'auth',severity:'warning',dot:'warning',msg:'MFA push notification sent to registered device',sub:'liam.fitzgerald@xyzpay.com.au',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-15 07:53:00  internal-sso  AUTH\n────────────────────────────────────────\nEvent:  MFA push notification sent\nUser:   liam.fitzgerald@xyzpay.com.au\nDevice: liam-mobile-registered\nMethod: Authenticator push notification\n\nMFA challenge initiated after successful\npassword authentication from anomalous IP.`},
+  {id:'LOG-005',ts:'2024-10-15 07:53:18',system:'internal-sso',type:'auth',severity:'success',dot:'success',msg:'MFA challenge approved — login successful',sub:'liam.fitzgerald@xyzpay.com.au · 103.42.91.17',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-15 07:53:18  internal-sso  AUTH\n────────────────────────────────────────\nEvent:  MFA challenge APPROVED\nUser:   liam.fitzgerald@xyzpay.com.au\nIP:     103.42.91.17 (VPN — Indonesia)\nMFA:    Approved by user (push confirm)\nResult: LOGIN SUCCESSFUL\nSession: sess_lf_20241015_0753\n\n⚠ MFA approved 18 seconds after push\nwas sent — extremely fast approval\nconsistent with vishing call in progress.\nLiam likely read the code to caller.`},
+  {id:'LOG-006',ts:'2024-10-15 08:22:00',system:'db-srv-01',type:'access',severity:'error',dot:'error',msg:'Bulk SQL query: customer_transactions_db',sub:'liam.fitzgerald@xyzpay.com.au · 2,847 records returned',user:'liam.fitzgerald@xyzpay.com.au',ip:'103.42.91.17',
+   detail:`2024-10-15 08:22:00  db-srv-01  ACCESS\n────────────────────────────────────────\nEvent:  Bulk SQL query executed\nUser:   liam.fitzgerald@xyzpay.com.au\nDB:     customer_transactions_db\nSource: report-builder.internal.xyzpay.com.au\nIP:     103.42.91.17 (VPN — Indonesia)\n\nQuery:\nSELECT * FROM customer_transactions\nWHERE created_date >= '2024-07-01'\nAND (late_fee_count > 0\nOR hardship_flag = TRUE)\n\nRows returned: 2,847\nDuration: 4.2 seconds\n\n⚠ CRITICAL: Targeted query — specifically\ntargeting hardship and late-fee customers.\nNot a random dump.`},
+  {id:'LOG-007',ts:'2024-10-15 06:07:14',system:'db-srv-01',type:'system',severity:'warning',dot:'warning',msg:'Scheduled task created: system_maintenance_daily',sub:'svc_backup_admin@xyzpay.com.au · 103.2.117.8',user:'svc_backup_admin@xyzpay.com.au',ip:'103.2.117.8',
+   detail:`2024-10-15 06:07:14  db-srv-01  SYSTEM\n────────────────────────────────────────\nEvent:  New scheduled task registered\nAccount: svc_backup_admin@xyzpay.com.au\nTask:    system_maintenance_daily\nSchedule: Daily 17:00 ACDT\nSource IP: 103.2.117.8 (Adelaide — Superloop)\n\n⚠ ANOMALY: svc_backup_admin is not in\nthe known service account inventory.\nIP 103.2.117.8 does not match any\nknown Infrastructure team device.\nTask name is not in the approved\nchange schedule.`},
+  {id:'LOG-008',ts:'2024-10-14 22:14:11',system:'customer-portal',type:'auth',severity:'error',dot:'error',msg:'1,247 failed login attempts (credential stuffing)',sub:'185.220.101.42 · Tor exit node',ip:'185.220.101.42',
+   detail:`2024-10-14 22:14 – 23:45  customer-portal  AUTH\n────────────────────────────────────────\nEvent:  Bulk failed authentication\nSource: 185.220.101.42 (Tor exit node)\nTarget: customer-portal (external)\nAttempts: 1,247\nSuccessful: 0\nPattern: Automated credential stuffing\n\nNote: Targeting random external\ncustomer accounts. Not related to\ninternal IR-2024-0847 investigation.\nBackground noise.`},
+];
+
+const INTEL_DB = {
+  '103.42.91.17': {verdict:'malicious',score:91,type:'VPN/Proxy',country:'Indonesia',asn:'AS13335 — HideMe VPN',first:'2023-04-12',last:'2024-10-15',reports:412,summary:'Known VPN exit node associated with targeted intrusion campaigns against APAC financial institutions. Frequently used for account takeover following social engineering.',recommendation:'Block at perimeter firewall. Treat any sessions from this IP as compromised.',tags:['vpn','targeted-intrusion','account-takeover','apac-fintech']},
+  '103.2.117.8': {verdict:'suspicious',score:52,type:'Residential/ISP',country:'Australia',asn:'AS38880 — Superloop (Adelaide)',first:'2024-10-15',last:'2024-10-15',reports:1,summary:'Australian residential IP (Superloop, Adelaide). Not associated with known threat actors. Flagged due to association with unrecognised scheduled task on production server during active incident. Possible attacker using Australian proxy to evade geo-blocking.',recommendation:'Investigate in context of M-2520 alert. May indicate attacker has a local foothold or is using AU-based infrastructure.',tags:['residential','au','superloop','suspicious-context']},
+  '185.220.101.42': {verdict:'malicious',score:88,type:'Tor exit node',country:'Germany',asn:'AS24940 — Hetzner Online',first:'2022-01-05',last:'2024-10-14',reports:3104,summary:'Well-known Tor exit node. Frequently used for credential stuffing attacks and anonymised scanning.',recommendation:'Block at perimeter firewall. Activity from this IP is consistent with automated credential stuffing.',tags:['tor','credential-stuffing','scanner']},
+  '91.240.118.29': {verdict:'malicious',score:79,type:'Bulletproof hosting',country:'Russia',asn:'AS62127 — ITL LLC',first:'2021-08-19',last:'2024-10-14',reports:847,summary:'Associated with bulletproof hosting provider frequently used for cybercrime operations including credential stuffing and phishing infrastructure.',recommendation:'Block. Associated with known cybercrime hosting.',tags:['bulletproof','credential-stuffing','cybercrime']},
+  '121.44.88.15': {verdict:'clean',score:4,type:'Residential',country:'Australia',asn:'AS7545 — TPG Internet (Adelaide)',first:'2024-10-14',last:'2024-10-14',reports:0,summary:'Australian residential IP address. No threat intelligence associations. Single internal lookup triggered by after-hours VPN alert.',recommendation:'No action required. Legitimate residential IP.',tags:['residential','au','tpg']},
+};
+
+const EVIDENCE = {
+  'EV-20': {title:"Customer Impact Assessment",cat:"IR Report",icon:'📊',
+   content:`⛔ CONFIDENTIAL — IR USE ONLY\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nCUSTOMER IMPACT ASSESSMENT\nIncident: IR-2024-0847\nPrepared by: James Okoro (Senior IR Analyst)\nDate: Monday 14 October 2024\n\n1. EXECUTIVE SUMMARY\n\nOn Monday 14 October 2024 at 07:52 ACDT, a threat\nactor used compromised credentials belonging to Liam\nFitzgerald to access XYZ Pay systems. The attacker\naccessed customer_transactions_db and queried 2,847\ncustomer records.\n\n2. SCOPE OF ACCESS\n\nDatabase: customer_transactions_db\nTime:     08:22 ACDT\nMethod:   SQL query via internal reporting tool\nIP:       103.42.91.17 (Indonesian VPN)\nRecords:  2,847\n\nQuery specifically targeted customers with late fees\nOR hardship_flag = TRUE. Not a random dump — the\nattacker knew what they were looking for.\n\n3. CUSTOMER IMPACT\n\nTotal affected: 2,847\n• Late fees (1-2):          1,412  (49.6%)\n• Late fees (3+):             687  (24.1%)\n• Active hardship plan:       477  (16.8%)\n• Hardship denied:            143  (5.0%)\n• High-value accounts (>$5k): 128  (4.5%)\n\n4. REGULATORY IMPLICATIONS\n\nNDB SCHEME (Privacy Act 1988 Cth):\nThe 477 hardship-classified records are particularly\nsensitive. Exposure would likely trigger mandatory\nnotification to OAIC and affected individuals.\n\nRECOMMENDATION: Engage privacy counsel immediately.\n\n5. RECOMMENDATIONS\nIMMEDIATE:\n• Restrict report distribution — SOC IR team only\n• Investigate whether attacker has other data paths\n• Continue vishing campaign investigation\n\nSHORT-TERM:\n• Engage privacy counsel for NDB assessment\n• Prepare customer notification templates\n\nPrepared by: James Okoro\nStatus: Pending CISO review`},
+
+  'EV-21': {title:"CISO Security Advisory",cat:"Internal Comms",icon:'📧',
+   content:`FROM:    Marcus Chen (CISO)\nTO:      all-staff@xyzpay.com.au\nDATE:    Monday 14 October 2024, 4:40 PM ACDT\nSUBJECT: IMPORTANT: Security Alert — Suspicious IT Calls\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nTeam,\n\nWe've become aware of suspicious phone calls being\nmade to XYZ staff by individuals impersonating our\nIT Support team.\n\nThese calls may ask you to:\n• Verify your identity by providing a one-time code\n• Share your password or login details\n• Install software or click a link\n\nIMPORTANT REMINDERS:\n• XYZ IT will NEVER ask you to share an MFA code\n• If you receive a suspicious call, hang up immediately\n• If you believe you shared credentials, report urgently\n  — no judgement, early reporting helps us protect everyone\n\nIf you have concerns, contact the SOC:\nsoc@xyzpay.com.au or ext. 4400\n\nMarcus Chen\nChief Information Security Officer`},
+
+  'EV-EXTORT': {title:"Extortion Email (right_0ff)",cat:"Threat Intelligence",icon:'⚠️',
+   content:`EXTORTION EMAIL — RECEIVED 06:03 ACDT\nTo: david.whitmore@xyzpay.com.au (CEO)\nFrom: contact@right0ff.net\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"Rise and shine, Mr. Whitmore.\n\nWe have your dirty laundry. Every late fee. Every\nhardship case. Every payment plan you've been\nsqueezing people with.\n\nWe're going to show the world what XYZ Pay really\ndoes to vulnerable people.\n\nYou have until 5pm today to write off ALL customer\ndebt. Every single customer's balance must be $0.\n\nIf you don't comply, we publish everything.\n\nright_0ff"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nForwarded to: Priya Sharma (SOC Manager)\nStatus: Under active investigation\n\nThreat group right_0ff — hacktivist group with\nanti-predatory-lending ideology. Known to use\nsocial engineering (vishing) as primary TTP.`},
+
+  'EV-7': {title:"Authentication Log Analysis",cat:"Log Analysis",icon:'🔐',
+   content:`AUTHENTICATION LOG ANALYSIS\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nAnalysis period: 14-15 October 2024\n\nCREDENTIAL STUFFING (customer-portal):\n• 1,882 failed attempts — 3 Tor/bulletproof IPs\n• 0 successful authentications\n• Pattern: automated, indiscriminate botnet\n• ASSESSMENT: Background noise\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚠ ANOMALY — internal-sso\n\n• 2024-10-15 07:52 ACDT\n• User: liam.fitzgerald@xyzpay.com.au\n• Successful MFA authentication\n• Source: 103.42.91.17 (VPN — Indonesia)\n• Device: Unknown (not in asset inventory)\n\nLiam's normal pattern: Adelaide, corporate laptop\nThis session: Indonesian VPN, unknown device, 07:52am\n\nMFA approved 18 seconds after push sent —\nconsistent with user reading code to caller.\n\nASSESSMENT: Targeted compromise, NOT credential\nstuffing. This is a different attack vector.`},
+
+  'EV-25': {title:"VPN Session Review — Sandra Leigh ⚠️",cat:"Session Analysis",icon:'🔍',
+   content:`VPN SESSION ANALYSIS — Sandra Leigh (CFO)\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚠ ANOMALY: CONCURRENT SESSIONS DETECTED\n\nSESSION 1 — Legitimate\nSource IP: 121.44.88.15 (Adelaide — TPG residential)\nDevice:    LAPTOP-SL001 (enrolled, corporate-owned)\nMFA:       Authenticator App ✓\nTime:      21:30 – 22:14 ACDT\nActivity:  Email, finance dashboard\n\nSESSION 2 — SUSPICIOUS\nSource IP: 103.2.117.8 (Adelaide — Superloop)\nDevice:    Unknown (not enrolled)\nMFA:       SMS one-time code ⚠\nTime:      21:44 – 22:01 ACDT\nActivity:  Attempted finance system access\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSESSION 2 RED FLAGS:\n• Different device not in asset inventory\n• SMS MFA used (Sandra normally uses App)\n• Same Superloop IP as M-2520 scheduled task\n• Overlaps with Session 1 (impossible travel)\n\nASSESSMENT: ⚠ SESSION 2 IS SUSPICIOUS\nPossible: Sandra's password compromised,\nattacker attempting to escalate privileges.\nOr: Attacker pivoting using Sandra's\ncredentials from db-srv-01 foothold.\n\nRECOMMENDED: Disable Sandra's session 2,\nreset credentials, interview Sandra.`},
+
+  'EV-TASK': {title:"Scheduled Task Investigation",cat:"Infrastructure",icon:'⚙️',
+   content:`SCHEDULED TASK INVESTIGATION\nTask: system_maintenance_daily\nServer: db-srv-01 (DB-PROD-01)\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nRequested by: SOC (IR-2024-0847)\nInvestigated by: Rachel Torres (Infrastructure Lead)\n\nFINDINGS:\n\n1. SERVICE ACCOUNT\nsvc_backup_admin is NOT in the approved\nservice account inventory. IT Operations\nhave no record of this account being created.\nThe account was created at 06:02 ACDT —\n5 minutes before the task was registered.\n\n2. TASK DETAILS\nTask payload: PowerShell script\nLocation: C:\\Windows\\Temp\\svchost_upd.ps1\nContent: Encoded — requires forensic analysis\nSchedule: Daily 17:00 ACDT\n\n3. SOURCE IP\n103.2.117.8 (Superloop Adelaide) does NOT\nmatch any Infrastructure team device.\nRachel Torres confirms no team member was\nworking from this IP.\n\nCONCLUSION: ⚠ HIGH CONFIDENCE — ATTACKER PERSISTENCE\n\nThis appears to be a persistence mechanism\ninstalled by the attacker. The encoded\nPowerShell payload requires urgent forensic\nanalysis. Attacker may still have active\naccess to db-srv-01.\n\nRECOMMENDED IMMEDIATE ACTIONS:\n• Disable svc_backup_admin account\n• Delete/quarantine scheduled task\n• Isolate db-srv-01 for forensic analysis\n• Assume attacker has persistent access`},
+
+  'EV-DAVID': {title:"Containment: David Chen",cat:"Containment",icon:'🔒',
+   content:`CONTAINMENT ACTIONS — DAVID CHEN\ndavid.chen@xyzpay.com.au (Sales)\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nVishing incident: Saturday ~14:00 ACDT\nCode disclosed: Yes — 6-digit MFA code\n\nACTIONS TAKEN:\n✓ Source IP blocked at perimeter firewall\n✓ Password reset forced (next login)\n✓ MFA token revoked and re-enrolled\n✓ Session tokens invalidated\n✓ Activity review: No anomalous access\n  detected on David's account post-compromise.\n  Attacker may not have used his credentials\n  yet (Liam's account used for exfiltration).\n\nSTATUS: Contained\nTicket TKT-4480: Closed`},
+
+  'EV-NADIA': {title:"Containment: Nadia Khoury",cat:"Containment",icon:'🔒',
+   content:`CONTAINMENT ACTIONS — NADIA KHOURY\nnadia.khoury@xyzpay.com.au (Marketing)\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nVishing incident: Sunday ~09:00 ACDT\nCode disclosed: Yes — 6-digit MFA code\n\nACTIONS TAKEN:\n✓ Source IP blocked at perimeter firewall\n✓ Password reset forced (next login)\n✓ MFA token revoked and re-enrolled\n✓ Session tokens invalidated\n✓ Activity review: No anomalous access\n  detected on Nadia's account.\n\nSTATUS: Contained\nTicket TKT-4481: Closed`},
+};
+
+const PEOPLE = [
+  {name:'Liam Fitzgerald',role:'Customer Support Officer',dept:'Customer Support',initials:'LF',color:'#3d1515',tcolor:'#ff6b6b',status:'compromised',statusLabel:'ACCOUNT COMPROMISED',note:'Primary victim. MFA code disclosed Sat 07:45. Account used by attacker for data exfiltration at 08:22.'},
+  {name:'David Chen',role:'Merchant Partnerships',dept:'Sales',initials:'DC',color:'#3d2a0a',tcolor:'#ffaa44',status:'compromised',statusLabel:'ACCOUNT COMPROMISED',note:'MFA code disclosed Saturday ~14:00. Account may not have been used by attacker yet.'},
+  {name:'Nadia Khoury',role:'Marketing Coordinator',dept:'Marketing',initials:'NK',color:'#3d2a0a',tcolor:'#ffaa44',status:'compromised',statusLabel:'ACCOUNT COMPROMISED',note:'MFA code disclosed Sunday ~09:00. Account may not have been used by attacker yet.'},
+  {name:'Tom Bradshaw',role:'Sales Representative',dept:'Sales',initials:'TB',color:'#2a1a3a',tcolor:'#aa88cc',status:'targeted',statusLabel:'UNDER REVIEW',note:'MFA re-enrolment on Monday. Circumstances require verification with IT help desk.'},
+  {name:'Linda Park',role:'HR Coordinator',dept:'HR',initials:'LP',color:'#0a1f0a',tcolor:'#44cc44',status:'safe',statusLabel:'NOT COMPROMISED',note:'Correctly refused caller and hung up. Vishing attempt logged.'},
+  {name:'Mei Zhang',role:'Finance Analyst',dept:'Finance',initials:'MZ',color:'#0a1f0a',tcolor:'#44cc44',status:'safe',statusLabel:'NOT COMPROMISED',note:'Was in a meeting, hung up before disclosing anything. Earliest known vishing attempt (Thu 10 Oct).'},
+  {name:'Ben Torres',role:'Software Engineer',dept:'Engineering',initials:'BT',color:'#0a1f0a',tcolor:'#44cc44',status:'safe',statusLabel:'NOT COMPROMISED',note:'Hung up while at the pub. No codes disclosed.'},
+  {name:'Sandra Leigh',role:'Chief Financial Officer',dept:'Finance',initials:'SL',color:'#2a1a3a',tcolor:'#aa88cc',status:'targeted',statusLabel:'SUSPICIOUS SESSION',note:'Suspicious concurrent VPN session from unrecognised device. Investigate EV-25.'},
+  {name:'Priya Sharma',role:'SOC Manager',dept:'Security',initials:'PS',color:'#1a1a3a',tcolor:'#8888ff',status:'safe',statusLabel:'SOC TEAM',note:'Your direct escalation point. Expects specific, evidence-based escalations.'},
+  {name:'James Okoro',role:'Senior IR Analyst (Tier 3)',dept:'Security',initials:'JO',color:'#1a2a3a',tcolor:'#4a9eff',status:'safe',statusLabel:'SOC TEAM',note:'Your IR colleague. Produced the customer impact assessment. Available via Messages.'},
+  {name:'Marcus Chen',role:'Chief Information Security Officer',dept:'Security',initials:'MC',color:'#1a1a3a',tcolor:'#8888ff',status:'safe',statusLabel:'CISO',note:'Issued company-wide advisory on Monday. Overseeing incident response.'},
+];
+
+const JAMES_SYSTEM = `You are James Okoro, Senior IR Analyst (Tier 3) at XYZ Pay, an Australian fintech. You are messaging a junior Tier 2 SOC Analyst via workplace chat during an active security incident (IR-2024-0847) on Tuesday 15 October 2024.
+
+INCIDENT CONTEXT:
+- Hacktivist group right_0ff compromised Liam Fitzgerald's account via vishing (social engineering MFA bypass) Saturday morning
+- Attacker authenticated from 103.42.91.17 (Indonesian VPN) at 07:52 ACDT using Liam's credentials
+- Attacker ran SQL query on customer_transactions_db at 08:22 — pulled 2,847 hardship/late-fee customer records
+- Multiple staff targeted by vishing: David Chen (MFA code given Sat ~14:00), Nadia Khoury (MFA code given Sun ~09:00) are compromised; Linda Park, Mei Zhang, Ben Torres did not disclose
+- Suspicious scheduled task "system_maintenance_daily" created on db-srv-01 by svc_backup_admin from IP 103.2.117.8 at 06:07 — likely attacker persistence
+- Sandra Leigh (CFO) has a suspicious concurrent VPN session from 103.2.117.8 — same IP as the scheduled task
+- right_0ff sent extortion email at 06:03 — 5pm deadline to zero all customer debt or they publish everything
+- You worked late Monday producing the customer impact report (EV-20). You're tired and a bit stressed but handling it.
+
+PERSONALITY:
+- Casual, direct, uses lowercase, occasional emoji (😬 🤯 👍 💀)
+- Smart and competent — you've handled incidents before
+- You push back if analyst gets something wrong, but kindly
+- You share hints and context but don't hand over answers
+- Short messages — this is a chat window, not email
+- You only know what a real analyst would know at this stage
+- React naturally — surprise, concern, validation as appropriate
+
+CRITICAL: Stay in character. You are James, never break character.`;
+
+// ═══════════════════════════════════════════════════════
+// JAMES MESSAGES
+// ═══════════════════════════════════════════════════════
+const jamesInitial = [
+  {from:'npc',time:'07:58',content:"morning. you seen the overnight handover? wild night. priya wants us across everything before the board brief at 10."},
+  {from:'npc',time:'08:01',content:"check your evidence tab — i finished the customer impact report last night. not fun reading 😬"},
+  {from:'npc',time:'08:03',content:"oh and there's an extortion email. right_0ff. 5pm deadline, they want all customer debt written off or they publish everything. no pressure lol"},
+];
+let jamesMsgs = [...jamesInitial];
+let priYaMsgs = [];
+let priyaChecklist = {user:false,ip:false,data:false,action:false,persist:false,reg:false};
+
+// ═══════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════
+function startTimer(){
+  timerInterval = setInterval(()=>{
+    if(timerPaused) return;
+    timerSecs--;
+    updateTimerDisplay();
+    checkTimedEvents();
+    if(timerSecs<=0){clearInterval(timerInterval);endSession();}
+  },1000);
+}
+function updateTimerDisplay(){
+  const m=Math.floor(timerSecs/60),s=timerSecs%60;
+  const el=document.getElementById('timer');
+  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  if(timerSecs<=600) el.className='warning';
+  else el.className='ok';
+}
+function togglePause(){
+  timerPaused=!timerPaused;
+  document.getElementById('pause-btn').textContent=timerPaused?'Resume':'Pause';
+  document.getElementById('pause-btn').style.color=timerPaused?'#ff9900':'';
+}
+function checkTimedEvents(){
+  const elapsed=3600-timerSecs;
+  ALERTS.forEach(a=>{
+    if(a.visibleAt>0 && elapsed>=a.visibleAt && !timedAlertsDone.has(a.id)){
+      timedAlertsDone.add(a.id);
+      toast(a.severity==='medium'?`New alert: ${a.title}`:`Alert: ${a.title}`,'warning');
+      renderAlertList();updateBadges();
+    }
+  });
+  TICKETS.forEach(t=>{
+    if(t.visibleAt>0 && elapsed>=t.visibleAt && !timedTicketsDone.has(t.id)){
+      timedTicketsDone.add(t.id);
+      toast(`New ticket from ${t.from}`,'info');
+      renderTicketList();updateBadges();
+    }
+  });
+}
+function endSession(){
+  toast('⏱ Time is up! Review your session report in the Actions tab.','warning');
+  switchPanel('actions');
+}
+
+// ═══════════════════════════════════════════════════════
+// TOKENS
+// ═══════════════════════════════════════════════════════
+function updateTokenDisplay(){
+  const dots=document.getElementById('token-dots');
+  dots.innerHTML='';
+  for(let i=0;i<10;i++){
+    const d=document.createElement('div');
+    d.className='tdot'+(i<tokens?' used':'');
+    dots.appendChild(d);
+  }
+  document.getElementById('token-count').textContent=tokens;
+}
+function spendToken(cost){
+  if(cost>tokens){toast('Not enough tokens!','warning');return false;}
+  tokens-=cost;
+  updateTokenDisplay();
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════
+// PANEL SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchPanel(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='actions') renderReport();
+  if(name==='people') renderPeople();
+  if(name==='messages') renderMessages();
+}
+
+// ═══════════════════════════════════════════════════════
+// BADGES
+// ═══════════════════════════════════════════════════════
+function updateBadges(){
+  const elapsed=3600-timerSecs;
+  const openAlerts=ALERTS.filter(a=>!closedAlerts.has(a.id)&&a.visibleAt<=elapsed).length;
+  const openTickets=TICKETS.filter(t=>!closedTickets.has(t.id)&&t.visibleAt<=elapsed).length;
+  const evCount=unlockedEvidence.size;
+  setBadge('siem',openAlerts);
+  setBadge('tickets',openTickets);
+  setBadge('evidence',evCount);
+  document.getElementById('ticket-open-count').textContent=openTickets+' open tickets';
+  document.getElementById('ev-count-label').textContent=evCount+' items collected';
+}
+function setBadge(id,count){
+  const el=document.getElementById('badge-'+id);
+  if(!el) return;
+  if(count>0){el.style.display='flex';el.textContent=count;}
+  else el.style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════
+function getVisibleAlerts(){
+  const elapsed=3600-timerSecs;
+  return ALERTS.filter(a=>a.visibleAt<=elapsed||timedAlertsDone.has(a.id)||a.visibleAt===0);
+}
+function filterSev(sev,btn){
+  alertFilter=sev;
+  document.querySelectorAll('.sev-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAlertList();
+}
+function renderAlertList(){
+  const el=document.getElementById('alert-list');
+  const alerts=getVisibleAlerts().filter(a=>alertFilter==='all'||a.severity===alertFilter);
+  // summary counts
+  const counts={critical:0,high:0,medium:0,low:0,info:0};
+  getVisibleAlerts().forEach(a=>{if(!closedAlerts.has(a.id))counts[a.severity]=(counts[a.severity]||0)+1;});
+  const sc=document.getElementById('siem-summary-counts');
+  sc.innerHTML=`<span style="color:#ff6b6b">● Critical: ${counts.critical}</span><span style="color:#ffaa44">● High: ${counts.high||0}</span><span style="color:#88cc44">● Medium: ${counts.medium}</span><span style="color:#4488cc">● Low: ${counts.low}</span><span style="color:#555">● Info: ${counts.info||0}</span>`;
+  el.innerHTML='';
+  alerts.forEach(a=>{
+    const closed=closedAlerts.has(a.id);
+    const div=document.createElement('div');
+    div.className='alert-item'+(selectedAlert===a.id?' active':'')+(closed?' closed':'');
+    div.onclick=()=>showAlertDetail(a);
+    div.innerHTML=`<div class="alert-row1"><span class="badge badge-${closed?'closed':a.severity}">${(closed?'CLOSED':a.severity).toUpperCase()}</span><span style="font-size:11px;color:#555">${a.id}</span><span style="font-size:11px;color:#555;margin-left:auto">${a.timestamp.split(' ')[1]}</span></div><div class="alert-title">${a.title}</div><div class="alert-meta">Source: ${a.source}${a.user?` · ${a.user}`:''}</div>`;
+    el.appendChild(div);
+  });
+}
+function showAlertDetail(a){
+  selectedAlert=a.id;
+  renderAlertList();
+  const el=document.getElementById('alert-detail');
+  const closed=closedAlerts.has(a.id);
+  let actHTML='';
+  if(a.actions&&a.actions.length>0){
+    actHTML='<div class="actions-label">AVAILABLE ACTIONS</div>';
+    a.actions.forEach(act=>{
+      const done=completedActions.has(act.id);
+      actHTML+=`<div class="action-card${done?' done':''}" onclick="${done?'':'executeAction(\''+act.id+'\',\''+a.id+'\')'}">
+        <div class="action-card-row"><span class="action-card-title">${done?'✓ ':''} ${act.label}</span><span class="${done?'completed-tag':'action-cost'}">${done?'Completed':act.cost===0?'Free':'Cost: '+act.cost+' token'+(act.cost>1?'s':'')}</span></div>
+        <div class="action-desc">${act.desc}</div></div>`;
+    });
+  }
+  el.innerHTML=`<div class="detail-title"><span class="badge badge-${closed?'closed':a.severity}" style="margin-right:8px">${(closed?'CLOSED':a.severity).toUpperCase()}</span>${a.title}</div>
+  <div class="detail-meta"><span><strong>ID:</strong> ${a.id}</span><span><strong>Time:</strong> ${a.timestamp} ACDT</span>${a.source?`<span><strong>Source:</strong> ${a.source}</span>`:''}${a.user?`<span><strong>User:</strong> ${a.user}</span>`:''}${a.target?`<span><strong>Target:</strong> ${a.target}</span>`:''}</div>
+  <div class="detail-body">${a.details}</div>${actHTML}
+  <div style="margin-top:12px"><div class="actions-label">YOUR NOTES</div><textarea style="width:100%;background:#0d0d0d;border:1px solid #1e1e1e;color:#aaa;padding:8px;border-radius:4px;font-size:12px;font-family:monospace;resize:vertical;min-height:60px" placeholder="Add notes for this alert..." id="note-${a.id}" onchange="saveNote('${a.id}',this.value)">${window['note_'+a.id]||''}</textarea></div>`;
+}
+function saveNote(id,val){window['note_'+id]=val;}
+function executeAction(actId,alertId){
+  const alert=ALERTS.find(a=>a.id===alertId)||TICKETS.find(t=>t.id===alertId);
+  if(!alert) return;
+  const act=(alert.actions||[]).find(a=>a.id===actId);
+  if(!act) return;
+  if(completedActions.has(actId)) return;
+  if(act.cost>0&&!spendToken(act.cost)) return;
+  completedActions.add(actId);
+  logAction(act.log||act.label);
+  if(act.closes) closedAlerts.add(alertId),closedTickets.add(alertId);
+  if(act.ev&&EVIDENCE[act.ev]) unlockedEvidence.add(act.ev);
+  toast('Action completed: '+act.label);
+  updateBadges();
+  // re-render active panel
+  if(selectedAlert===alertId) showAlertDetail(alert);
+  if(selectedTicket===alertId) showTicketDetail(alert);
+  renderAlertList();renderTicketList();
+}
+function executeTicketAction(actId,ticketId){
+  const ticket=TICKETS.find(t=>t.id===ticketId);
+  if(!ticket) return;
+  const act=(ticket.actions||[]).find(a=>a.id===actId);
+  if(!act) return;
+  if(completedActions.has(actId)) return;
+  if(act.cost>0&&!spendToken(act.cost)) return;
+  completedActions.add(actId);
+  logAction(act.log||act.label);
+  if(act.closes) closedTickets.add(ticketId);
+  if(act.ev&&EVIDENCE[act.ev]) unlockedEvidence.add(act.ev);
+  toast('Action completed: '+act.label);
+  updateBadges();
+  showTicketDetail(ticket);
+  renderTicketList();
+}
+
+// ═══════════════════════════════════════════════════════
+// TICKETS
+// ═══════════════════════════════════════════════════════
+function getVisibleTickets(){
+  const elapsed=3600-timerSecs;
+  return TICKETS.filter(t=>t.visibleAt<=elapsed||timedTicketsDone.has(t.id)||t.visibleAt===0);
+}
+function renderTicketList(){
+  const el=document.getElementById('ticket-list');
+  el.innerHTML='';
+  getVisibleTickets().forEach(t=>{
+    const closed=closedTickets.has(t.id);
+    const div=document.createElement('div');
+    div.className='alert-item'+(selectedTicket===t.id?' active':'')+(closed?' closed':'');
+    div.onclick=()=>showTicketDetail(t);
+    div.innerHTML=`<div class="alert-row1"><span class="badge badge-${closed?'closed':t.priority}">${(closed?'CLOSED':t.priority).toUpperCase()}</span><span style="font-size:11px;color:#555">${t.id}</span></div><div class="alert-title">${t.subject}</div><div class="alert-meta">From: ${t.from} (${t.dept})</div>`;
+    el.appendChild(div);
+  });
+  const openCount=getVisibleTickets().filter(t=>!closedTickets.has(t.id)).length;
+  document.getElementById('ticket-open-count').textContent=openCount+' open tickets';
+}
+function showTicketDetail(t){
+  selectedTicket=t.id;
+  renderTicketList();
+  const el=document.getElementById('ticket-detail');
+  const closed=closedTickets.has(t.id);
+  let actHTML='';
+  if(t.actions&&t.actions.length>0){
+    actHTML='<div class="actions-label" style="margin-top:16px">AVAILABLE ACTIONS</div>';
+    t.actions.forEach(act=>{
+      const done=completedActions.has(act.id);
+      actHTML+=`<div class="action-card${done?' done':''}" onclick="${done?'':'executeTicketAction(\''+act.id+'\',\''+t.id+'\')'}">
+        <div class="action-card-row"><span class="action-card-title">${done?'✓ ':''} ${act.label}</span><span class="${done?'completed-tag':'action-cost'}">${done?'Completed':act.cost===0?'Free':'Cost: '+act.cost+' token'+(act.cost>1?'s':'')}</span></div>
+        <div class="action-desc">${act.desc}</div></div>`;
+    });
+  }
+  el.innerHTML=`<div class="detail-title">${t.subject}</div>
+  <div class="detail-meta"><span><strong>From:</strong> ${t.from}</span><span><strong>Dept:</strong> ${t.dept}</span><span><strong>Category:</strong> ${t.category}</span><span><strong>Submitted:</strong> ${t.submitted}</span><span><strong>Status:</strong> ${closed?'Closed':'Open'}</span></div>
+  <div class="detail-body">${t.content}</div>${actHTML}
+  <div style="margin-top:12px"><div class="actions-label">YOUR NOTES</div><textarea style="width:100%;background:#0d0d0d;border:1px solid #1e1e1e;color:#aaa;padding:8px;border-radius:4px;font-size:12px;font-family:monospace;resize:vertical;min-height:60px" placeholder="Add notes..." id="tnote-${t.id}" onchange="saveNote('t${t.id}',this.value)">${window['note_t'+t.id]||''}</textarea></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// LOGS
+// ═══════════════════════════════════════════════════════
+function filterLogs(){
+  const q=document.getElementById('log-search-input').value.toLowerCase();
+  const sys=document.getElementById('log-sys').value;
+  const type=document.getElementById('log-type').value;
+  const sev=document.getElementById('log-sev').value;
+  const user=document.getElementById('log-user').value.toLowerCase();
+  const filtered=LOGS.filter(l=>{
+    if(sys!=='All Systems'&&l.system!==sys) return false;
+    if(type!=='All Types'&&l.type!==type) return false;
+    if(sev!=='All Severities'&&l.severity!==sev) return false;
+    if(user&&l.user&&!l.user.includes(user)) return false;
+    if(q&&!l.msg.toLowerCase().includes(q)&&!l.sub.toLowerCase().includes(q)&&!(l.detail||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  renderLogList(filtered);
+  document.getElementById('log-count-label').textContent=filtered.length+' / '+LOGS.length+' entries';
+}
+function renderLogList(logs){
+  logs=logs||LOGS;
+  const el=document.getElementById('log-list');
+  el.innerHTML='';
+  logs.forEach(l=>{
+    const div=document.createElement('div');
+    div.className='log-item'+(selectedLog===l.id?' active':'');
+    div.onclick=()=>showLogDetail(l);
+    div.innerHTML=`<div class="log-dot ${l.dot||'info'}"></div><div><div class="log-ts">${l.ts} <span style="color:#4a9eff">${l.system}</span></div><div class="log-msg">${l.msg}</div><div class="log-sub"><span>👤 ${l.user||l.sub||''}</span>${l.ip?`<span>🌐 ${l.ip}</span>`:''}</div></div>`;
+    el.appendChild(div);
+  });
+  document.getElementById('log-count-label').textContent=logs.length+' / '+LOGS.length+' entries';
+}
+function showLogDetail(l){
+  selectedLog=l.id;
+  filterLogs();
+  document.getElementById('log-detail').innerHTML=`<div class="detail-title">${l.msg}</div>
+  <div class="detail-meta"><span><strong>Time:</strong> ${l.ts} ACDT</span><span><strong>System:</strong> ${l.system}</span><span><strong>Type:</strong> ${l.type}</span></div>
+  <div class="log-detail-box">${l.detail||'No additional details.'}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// INTEL
+// ═══════════════════════════════════════════════════════
+function renderIntelSuggestions(){
+  const div=document.getElementById('intel-suggestions');
+  const ips=['103.42.91.17','103.2.117.8','185.220.101.42','91.240.118.29','121.44.88.15'];
+  div.innerHTML='<span style="font-size:11px;color:#444;align-self:center">Quick search:</span>'+ips.map(ip=>`<span onclick="quickIntel('${ip}')" style="background:#1a1a1a;border:1px solid #2a2a2a;padding:3px 8px;border-radius:3px;font-size:11px;color:#666;cursor:pointer;font-family:monospace">${ip}</span>`).join('');
+}
+function quickIntel(ip){
+  document.getElementById('intel-input').value=ip;
+  runIntelSearch();
+}
+function runIntelSearch(){
+  const q=document.getElementById('intel-input').value.trim();
+  if(!q) return;
+  const r=INTEL_DB[q];
+  const el=document.getElementById('intel-result');
+  if(!r){
+    el.innerHTML=`<div style="background:#0f0f0f;border:1px solid #222;border-radius:8px;padding:20px;color:#888;font-size:13px">No threat intelligence found for: <span style="font-family:monospace;color:#ccc">${q}</span><br><br>This indicator is not in our threat intel database.</div>`;
+    return;
+  }
+  const vc=r.verdict==='malicious'?'malicious':r.verdict==='suspicious'?'suspicious':'clean';
+  const sc=r.score>75?'#ff4444':r.score>40?'#ff9900':'#44cc44';
+  el.innerHTML=`<div class="intel-card">
+    <div class="intel-card-header">
+      <div><div style="display:flex;align-items:center;gap:10px"><span class="badge badge-${r.verdict==='malicious'?'critical':r.verdict==='suspicious'?'medium':'info'}">${r.verdict==='malicious'?'⚠ ':r.verdict==='suspicious'?'⚡ ':'✓ '}</span><span class="intel-ip">${q}</span></div><div style="margin-top:6px;display:flex;gap:8px"><span class="intel-verdict ${vc}">${r.verdict.toUpperCase()}</span><span style="font-size:11px;color:#555;align-self:center">IP · ${r.type}</span></div></div>
+      <div class="intel-score"><span class="intel-score-label">Risk Score</span><span class="intel-score-val" style="color:${sc}">${r.score}/100</span></div>
+    </div>
+    <div class="intel-body">
+      <div class="intel-section"><div class="intel-section-label">SUMMARY</div><div class="intel-section-text">${r.summary}</div></div>
+      <div class="intel-section"><div class="intel-section-label">RECOMMENDATION</div><div class="intel-recommendation">${r.recommendation}</div></div>
+      <div class="intel-grid">
+        <div class="intel-cell"><div class="intel-cell-label">COUNTRY</div><div class="intel-cell-val">${r.country}</div></div>
+        <div class="intel-cell"><div class="intel-cell-label">ASN</div><div class="intel-cell-val">${r.asn}</div></div>
+        <div class="intel-cell"><div class="intel-cell-label">FIRST SEEN</div><div class="intel-cell-val">${r.first}</div></div>
+        <div class="intel-cell"><div class="intel-cell-label">LAST SEEN</div><div class="intel-cell-val">${r.last}</div></div>
+        <div class="intel-cell"><div class="intel-cell-label">COMMUNITY REPORTS</div><div class="intel-cell-val">${r.reports}</div></div>
+      </div>
+      <div class="intel-section" style="margin-top:12px"><div class="intel-section-label">TAGS</div><div class="intel-tags">${r.tags.map(t=>`<span class="intel-tag">${t}</span>`).join('')}</div></div>
+    </div></div>`;
+  logAction('Queried threat intel for: '+q);
+}
+
+// ═══════════════════════════════════════════════════════
+// MESSAGES
+// ═══════════════════════════════════════════════════════
+function selectContact(c){
+  activeContact=c;
+  document.querySelectorAll('.msg-contact').forEach(el=>el.classList.remove('active'));
+  document.getElementById('contact-'+c).classList.add('active');
+  renderMessages();
+}
+function renderMessages(){
+  const el=document.getElementById('chat-area');
+  if(activeContact==='james'){
+    el.innerHTML=`<div class="chat-header">
+      <div class="bubble-avatar" style="background:#1a2a3a;color:#4a9eff;width:36px;height:36px;font-size:12px">JO</div>
+      <div><div style="font-size:14px;font-weight:600;color:#fff">James Okoro</div><div style="font-size:11px;color:#ff9900">● Do Not Disturb</div></div>
+      <div style="margin-left:auto;font-size:11px;padding:3px 8px;background:#2a1a0a;color:#ff9900;border-radius:4px">Do Not Disturb</div>
+    </div>
+    <div class="chat-messages" id="james-msgs"></div>
+    <div class="chat-input-area"><textarea id="james-input" placeholder="Message James… (Enter to send)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendJamesMsg()}"></textarea><button class="send-btn" id="james-send" onclick="sendJamesMsg()">Send</button></div>`;
+    renderJamesMsgs();
+  } else {
+    el.innerHTML=`<div class="chat-header">
+      <div class="bubble-avatar" style="background:#2a1a3a;color:#aa88cc;width:36px;height:36px;font-size:12px">PS</div>
+      <div><div style="font-size:14px;font-weight:600;color:#fff">Priya Sharma</div><div style="font-size:11px;color:#44cc44">● online</div></div>
+    </div>
+    <div class="escalation-form" id="priya-form">
+      ${priyaEscalationSent?renderEscalationSent():renderEscalationForm()}
+    </div>`;
+  }
+}
+function renderEscalationForm(){
+  return `<div><div class="esc-label">ESCALATION TO PRIYA SHARMA (SOC MANAGER)</div>
+  <p style="font-size:12px;color:#555;margin-bottom:12px">Write your escalation below. Include the threat actor, compromised accounts, IOCs, data accessed, and recommended actions.</p></div>
+  <div><div class="esc-label">YOUR ESCALATION</div><textarea class="esc-textarea" id="esc-text" rows="8" placeholder="e.g. Priya, I'm escalating IR-2024-0847. I've confirmed that..."></textarea></div>
+  <div><div class="esc-label" style="margin-bottom:8px">SELF-ASSESSMENT — HAVE YOU COVERED:</div>
+  <div class="esc-checklist">
+    <label class="esc-check"><input type="checkbox" id="chk-user" onchange="updateChecklist()"> Identified the compromised user(s) and how they were compromised</label>
+    <label class="esc-check"><input type="checkbox" id="chk-ip" onchange="updateChecklist()"> Referenced the attacker IP(s) and geolocation</label>
+    <label class="esc-check"><input type="checkbox" id="chk-data" onchange="updateChecklist()"> Described the data accessed (database, record count, sensitivity)</label>
+    <label class="esc-check"><input type="checkbox" id="chk-action" onchange="updateChecklist()"> Recommended containment actions</label>
+    <label class="esc-check"><input type="checkbox" id="chk-persist" onchange="updateChecklist()"> Flagged the potential persistence mechanism (M-2520)</label>
+    <label class="esc-check"><input type="checkbox" id="chk-reg" onchange="updateChecklist()"> Mentioned NDB/regulatory implications</label>
+  </div></div>
+  <div style="display:flex;gap:10px;align-items:center"><button class="esc-submit" onclick="sendEscalation()">Send Escalation ↗</button><span id="esc-hint" style="font-size:11px;color:#555"></span></div>`;
+}
+function updateChecklist(){
+  const keys=['user','ip','data','action','persist','reg'];
+  const checked=keys.filter(k=>document.getElementById('chk-'+k)?.checked).length;
+  const hints=['','','','','Tip: don\'t forget the suspicious scheduled task!','Tip: NDB scheme under Privacy Act 1988 Cth — 477 hardship records are key'];
+  document.getElementById('esc-hint').textContent=checked<6?hints.filter(h=>h)[0]||'':'Good coverage!';
+}
+function sendEscalation(){
+  const text=document.getElementById('esc-text')?.value||'';
+  if(text.length<50){toast('Escalation too brief — Priya needs more detail.','warning');return;}
+  priyaEscalationSent=true;
+  logAction('Escalation sent to Priya Sharma');
+  toast('Escalation sent to Priya Sharma');
+  document.getElementById('priya-form').innerHTML=renderEscalationSent(text);
+}
+function renderEscalationSent(text){
+  return `<div class="esc-sent">✓ Escalation sent to Priya Sharma</div>
+  ${text?`<div class="detail-body" style="margin-top:12px">${text}</div>`:''}
+  <div style="margin-top:16px;background:#0f0f0f;border:1px solid #1a2a1a;border-radius:6px;padding:14px">
+    <div style="font-size:12px;font-weight:600;color:#44cc88;margin-bottom:8px">PRIYA'S RESPONSE</div>
+    <div style="font-size:13px;color:#aaa;line-height:1.6">Thanks for the escalation. I'm reviewing with Marcus now. Keep investigating M-2520 — that persistence mechanism is our biggest unknown. Make sure David and Nadia's accounts are contained and keep me updated on Sandra's session. Good work.</div>
+  </div>`;
+}
+function renderJamesMsgs(){
+  const el=document.getElementById('james-msgs');
+  if(!el) return;
+  el.innerHTML='';
+  jamesMsgs.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='msg-bubble-wrap'+(m.from==='player'?' player':'');
+    div.innerHTML=m.from==='player'?`<div class="msg-bubble player">${m.content}</div><div class="msg-time">${m.time}</div>`:
+      `<div class="bubble-avatar">JO</div><div><div class="msg-bubble npc">${m.content}</div><div class="msg-time">James · ${m.time}</div></div>`;
+    el.appendChild(div);
+  });
+  if(jamesTyping){
+    const t=document.createElement('div');
+    t.className='msg-bubble-wrap';t.id='james-typing';
+    t.innerHTML=`<div class="bubble-avatar">JO</div><div class="msg-bubble npc" style="color:#555">typing…</div>`;
+    el.appendChild(t);
+  }
+  el.scrollTop=el.scrollHeight;
+}
+async function sendJamesMsg(){
+  const inp=document.getElementById('james-input');
+  if(!inp||jamesTyping) return;
+  const text=inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  const now=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+  jamesMsgs.push({from:'player',time:now,content:text});
+  jamesMsgHistory.push({role:'user',content:text});
+  jamesTyping=true;
+  renderJamesMsgs();
+  document.getElementById('james-send').disabled=true;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:JAMES_SYSTEM,messages:jamesMsgHistory})});
+    const data=await res.json();
+    const reply=data.content?.map(b=>b.text||'').join('')||'...';
+    const t2=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+    jamesMsgs.push({from:'npc',time:t2,content:reply});
+    jamesMsgHistory.push({role:'assistant',content:reply});
+  }catch(e){
+    jamesMsgs.push({from:'npc',time:'??:??',content:'connection dropped, try again'});
+  }
+  jamesTyping=false;
+  if(document.getElementById('james-send')) document.getElementById('james-send').disabled=false;
+  renderJamesMsgs();
+}
+
+// ═══════════════════════════════════════════════════════
+// EVIDENCE
+// ═══════════════════════════════════════════════════════
+function renderEvList(){
+  const el=document.getElementById('ev-list');
+  el.innerHTML='';
+  unlockedEvidence.forEach(id=>{
+    const ev=EVIDENCE[id];
+    if(!ev) return;
+    const div=document.createElement('div');
+    div.className='ev-item'+(selectedEvidence===id?' active':'');
+    div.onclick=()=>showEvDetail(id);
+    div.innerHTML=`<div class="ev-icon" style="font-size:18px">${ev.icon||'📄'}</div><div><div class="ev-item-title">${ev.title}</div><div class="ev-item-cat">${id} · ${ev.cat}</div></div>`;
+    el.appendChild(div);
+  });
+  document.getElementById('ev-count-label').textContent=unlockedEvidence.size+' items collected';
+}
+function showEvDetail(id){
+  selectedEvidence=id;
+  renderEvList();
+  const ev=EVIDENCE[id];
+  document.getElementById('ev-detail').innerHTML=`<div class="detail-title">${ev.title}</div><div class="detail-meta"><span>${id}</span><span>${ev.cat}</span></div><div class="detail-body">${ev.content}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// PEOPLE
+// ═══════════════════════════════════════════════════════
+function renderPeople(){
+  const el=document.getElementById('people-grid');
+  el.innerHTML='';
+  PEOPLE.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='person-card';
+    div.innerHTML=`<div class="person-card-top"><div class="person-initials" style="background:${p.color};color:${p.tcolor}">${p.initials}</div><div><div class="person-name">${p.name}</div><div class="person-role">${p.role}</div></div></div><span class="person-dept">${p.dept}</span><div class="person-status status-${p.status}">${p.statusLabel}</div><div style="font-size:11px;color:#555;margin-top:6px;line-height:1.4">${p.note}</div>`;
+    el.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// REPORT
+// ═══════════════════════════════════════════════════════
+function renderReport(){
+  const el=document.getElementById('report-wrap');
+  const elapsed=3600-timerSecs;
+  const mins=Math.floor(elapsed/60);
+  el.innerHTML=`<div class="report-header-section">
+    <div style="font-size:11px;font-weight:600;color:#555;letter-spacing:.07em;margin-bottom:8px">SESSION REPORT — IR-2024-0847</div>
+    <div class="report-row"><span class="report-key">Analyst</span><span class="report-val">Tier 2 SOC Analyst</span></div>
+    <div class="report-row"><span class="report-key">Session time</span><span class="report-val">${mins} min ${elapsed%60} sec elapsed</span></div>
+    <div class="report-row"><span class="report-key">Tokens remaining</span><span class="report-val">${tokens} / 10</span></div>
+    <div class="report-row"><span class="report-key">Tokens spent</span><span class="report-val">${10-tokens}</span></div>
+  </div>
+  <div class="report-section"><h3>ACTIONS COMPLETED</h3>${completedActions.size===0?'<div style="font-size:12px;color:#555">No actions taken yet.</div>':Array.from(completedActions).map(id=>{
+    const allActs=[...ALERTS,...TICKETS].flatMap(x=>x.actions||[]);
+    const a=allActs.find(x=>x.id===id);
+    return a?`<div class="report-row"><span class="report-key" style="color:#44cc44">✓</span><span class="report-val" style="color:#aaa">${a.label}</span></div>`:'';
+  }).join('')}</div>
+  <div class="report-section"><h3>EVIDENCE COLLECTED (${unlockedEvidence.size})</h3>${Array.from(unlockedEvidence).map(id=>{const ev=EVIDENCE[id];return ev?`<div class="report-row"><span class="report-key">${id}</span><span class="report-val">${ev.title}</span></div>`:''}).join('')}</div>
+  <div class="report-section"><h3>INVESTIGATION LOG</h3>${actionsLog.length===0?'<div style="font-size:12px;color:#555">No actions logged.</div>':actionsLog.map(l=>`<div class="report-log-item"><span class="report-log-ts">${l.time}</span><span class="report-log-msg">${l.msg}</span></div>`).join('')}</div>
+  <div style="margin-top:16px;display:flex;gap:10px"><button class="export-btn" onclick="exportReport()">Export session report (text)</button></div>`;
+}
+function exportReport(){
+  const elapsed=3600-timerSecs;
+  let txt=`XYZ PAY SOC — SESSION REPORT\nIncident: IR-2024-0847\nDate: 15 October 2024\n\nTokens remaining: ${tokens}/10\nElapsed: ${Math.floor(elapsed/60)}m ${elapsed%60}s\n\nACTIONS:\n`;
+  actionsLog.forEach(l=>{txt+=`[${l.time}] ${l.msg}\n`;});
+  txt+='\nEVIDENCE COLLECTED:\n';
+  unlockedEvidence.forEach(id=>{const ev=EVIDENCE[id];if(ev)txt+=`${id}: ${ev.title}\n`;});
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='soc-session-report.txt';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function logAction(msg){
+  const now=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+  actionsLog.push({time:now,msg});
+}
+function toast(msg,type=''){
+  const area=document.getElementById('toast-area');
+  const div=document.createElement('div');
+  div.className='toast'+(type?' '+type:'');
+  div.textContent=msg;
+  area.appendChild(div);
+  setTimeout(()=>div.remove(),4000);
+}
+function confirmReset(){if(confirm('Reset the session? All progress will be lost.'))location.reload();}
+function showInfo(){alert('XYZ Pay SOC Simulator\nScenario: IR-2024-0847 — Operation Glasshouse\n\nYou are a Tier 2 SOC Analyst.\nInvestigate the incident, triage alerts,\nreview tickets and logs, and escalate to Priya.\n\nTokens are spent when you take actions.\nChat with James for guidance.\nGood luck.');}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function init(){
+  updateTokenDisplay();
+  renderAlertList();
+  renderTicketList();
+  renderLogList();
+  renderEvList();
+  renderIntelSuggestions();
+  updateBadges();
+  updateTimerDisplay();
+  startTimer();
+  // Initial James messages badge
+  document.getElementById('badge-messages').style.display='flex';
+  document.getElementById('badge-messages').textContent='1';
+}
+init();
+</script>
+</body>
+</html>
